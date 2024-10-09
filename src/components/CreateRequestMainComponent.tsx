@@ -2,13 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Button, TextInput } from "flowbite-react";
 import { HiPlus, HiX, HiTrash } from "react-icons/hi";
 import { Formik, Field, Form, FieldArray, ErrorMessage, FormikHelpers } from "formik";
-import {validationSchema} from './validationSchema'
-
+import { validationSchema } from './validationSchema';
 
 interface FormValues {
   urls: string[];
 }
-
 
 export const CreateRequestMainComponent: React.FC = () => {
   const [initialValues, setInitialValues] = useState<FormValues>({ urls: [""] });
@@ -45,12 +43,12 @@ export const CreateRequestMainComponent: React.FC = () => {
       </div>
 
       <Formik
-        initialValues={initialValues} 
+        initialValues={initialValues}
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
-        enableReinitialize={true} 
+        enableReinitialize={true}
       >
-        {({ values, isSubmitting, errors, touched }) => (
+        {({ values, isSubmitting, errors, touched, setFieldTouched }) => (
           <Form className="flex flex-col h-full">
             <div className="p-6 w-[50vw] m-auto flex-grow overflow-auto">
               <div>
@@ -58,7 +56,7 @@ export const CreateRequestMainComponent: React.FC = () => {
                   Add videos or folders
                 </h4>
                 <p className="text-[12px] text-gray-900 dark:text-gray-400">
-                  These videos would be cut, labeled and made available in your Recharm video library
+                  These videos would be cut, labeled, and made available in your Recharm video library.
                 </p>
               </div>
 
@@ -74,7 +72,7 @@ export const CreateRequestMainComponent: React.FC = () => {
                             touched.urls &&
                             touched.urls[index] &&
                             errors.urls[index]
-                              ? "text-[#C81E1E]" 
+                              ? "text-[#C81E1E]"
                               : "text-[#111827] dark:text-gray-400"
                           }`}
                         >
@@ -83,24 +81,31 @@ export const CreateRequestMainComponent: React.FC = () => {
 
                         <div className="relative flex items-center my-2 justify-between">
                           <Field
-                            name={`urls.${index}`}
+                            name={`urls.${index}`} // Correctly reference the field name
                             placeholder="e.g http://drive.google.com/some-link"
                             as={TextInput}
                             className={`flex-grow pr-10 ${
                               touched.urls?.[index] && errors.urls?.[index]
-                                ? "border-[#C81E1E] focus:border-[#C81E1E] focus:ring-[#C81E1E] text-[#C81E1E]" 
+                                ? "border-[#C81E1E] focus:border-[#C81E1E] focus:ring-[#C81E1E] text-[#C81E1E]"
                                 : "border-gray-300 focus:ring-0"
                             }`}
-                            onFocus={() => setFocusedInputIndex(index)}
-                            onBlur={() => setFocusedInputIndex(null)}   
+                            onFocus={() => {
+                              setFocusedInputIndex(index); // Set focused index
+                              setFieldTouched(`urls.${index}`); // Mark the field as touched
+                            }}
+                            onBlur={() => setFocusedInputIndex(index)}   
                           />
-                          { (
+                          {/* Only show trash icon if this input is focused */}
+                          {focusedInputIndex === index && (
                             <button
                               type="button"
-                              onClick={() => arrayHelpers.remove(index)}
-                              className="absolute right-12 text-gray-400 hover:text-red-600"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent blur event on input
+                                arrayHelpers.remove(index); // Remove the input
+                              }}
+                              className="absolute right-12 text-gray-400"
                             >
-                              <HiTrash onClick={() => arrayHelpers.remove(index)} className="h-5 w-5" />
+                              <HiTrash className="h-4 w-4" />
                             </button>
                           )}
                         </div>
@@ -125,7 +130,7 @@ export const CreateRequestMainComponent: React.FC = () => {
                 )}
               />
             </div>
-            
+
             <div className="p-4 bg-white border-t border-[#E5E7EB]">
               <div className="flex items-center justify-end">
                 <Button
