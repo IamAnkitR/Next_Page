@@ -1,38 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button, TextInput } from "flowbite-react";
 import { HiPlus, HiX, HiTrash } from "react-icons/hi";
 import { Formik, Field, Form, FieldArray, ErrorMessage, FormikHelpers } from "formik";
-import { validationSchema } from './validationSchema';
+import { validationSchema } from '@/utils/validationSchema';
+import { validateURL } from '@/utils/validateURL';
+
 
 interface FormValues {
   urls: string[];
 }
 
 export const CreateRequestMainComponent: React.FC = () => {
-  const [initialValues, setInitialValues] = useState<FormValues>({ urls: [""] });
   const [focusedInputIndex, setFocusedInputIndex] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedUrls = window.localStorage.getItem("savedUrls");
-      if (savedUrls) {
-        setInitialValues({ urls: JSON.parse(savedUrls) });
-      }
-    }
-  }, []);
+  const handleSubmit = async (values: FormValues, { setSubmitting }: FormikHelpers<FormValues>) => {
+    try {
 
-  const handleSubmit = (values: FormValues, { setSubmitting }: FormikHelpers<FormValues>) => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("savedUrls", JSON.stringify(values.urls));
+      validateURL(values, setSubmitting)
+
+    } catch (error) {
+      console.error("Error submitting form", error);
+      alert("An error occurred while submitting the form. Please try again later.");
+    } finally {
+      setSubmitting(false);
     }
-    alert("Request created successfully");
-    setSubmitting(false);
   };
+
 
   return (
     <div className="flex flex-col h-[100vh]">
       <div className="flex items-center justify-between border-b rounded-t">
-        <div className="flex w-[100vw]">
+        <div className="flex w-full">
           <h3 className="text-[18px] font-semibold text-gray-900 pl-[24px] pb-[24px] mt-[24px] dark:text-white">
             Create New Request
           </h3>
@@ -43,14 +41,16 @@ export const CreateRequestMainComponent: React.FC = () => {
       </div>
 
       <Formik
-        initialValues={initialValues}
+        initialValues={{ urls: [''] }}
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
+        validateOnBlur={false}
+        validateOnChange={false}
         enableReinitialize={true}
       >
-        {({ values, isSubmitting, errors, touched, setFieldTouched }) => (
+        {({ values, isSubmitting, errors, touched, setFieldTouched, validateForm }) => (
           <Form className="flex flex-col h-full">
-            <div className="p-6 w-[50vw] m-auto flex-grow overflow-auto">
+            <div className="p-6 w-full md:w-[50vw] m-auto flex-grow">
               <div>
                 <h4 className="text-[18px] mb-[2px] font-bold text-gray-900 dark:text-white">
                   Add videos or folders
@@ -67,41 +67,37 @@ export const CreateRequestMainComponent: React.FC = () => {
                     {values.urls.map((url: string, index: number) => (
                       <div key={index} className="my-4">
                         <p
-                          className={`text-[14px] mt-[24px] font-medium ${
-                            errors.urls &&
+                          className={`text-[14px] mt-[24px] font-medium ${errors.urls &&
                             touched.urls &&
                             touched.urls[index] &&
                             errors.urls[index]
-                              ? "text-[#C81E1E]"
-                              : "text-[#111827] dark:text-gray-400"
-                          }`}
+                            ? "text-[#C81E1E]"
+                            : "text-[#111827] dark:text-gray-400"
+                            }`}
                         >
                           Video/Folder URL {index + 1}
                         </p>
 
                         <div className="relative flex items-center my-2 justify-between">
                           <Field
-                            name={`urls.${index}`} // Correctly reference the field name
+                            name={`urls.${index}`}
                             placeholder="e.g http://drive.google.com/some-link"
                             as={TextInput}
-                            className={`flex-grow pr-10 ${
-                              touched.urls?.[index] && errors.urls?.[index]
-                                ? "border-[#C81E1E] focus:border-[#C81E1E] focus:ring-[#C81E1E] text-[#C81E1E]"
-                                : "border-gray-300 focus:ring-0"
-                            }`}
+                            className={`flex-grow pr-10`}
                             onFocus={() => {
-                              setFocusedInputIndex(index); // Set focused index
-                              setFieldTouched(`urls.${index}`); // Mark the field as touched
+                              setFocusedInputIndex(index);
+                              setFieldTouched(`urls.${index}`);
                             }}
-                            onBlur={() => setFocusedInputIndex(index)}   
+                            onBlur={() => setFocusedInputIndex(index)}
+                            color={
+                              touched.urls?.[index] && errors.urls?.[index] ? 'failure' : 'gray'}
                           />
-                          {/* Only show trash icon if this input is focused */}
                           {focusedInputIndex === index && (
                             <button
                               type="button"
                               onClick={(e) => {
-                                e.stopPropagation(); // Prevent blur event on input
-                                arrayHelpers.remove(index); // Remove the input
+                                e.stopPropagation();
+                                arrayHelpers.remove(index);
                               }}
                               className="absolute right-12 text-gray-400"
                             >
@@ -112,12 +108,12 @@ export const CreateRequestMainComponent: React.FC = () => {
                         <ErrorMessage name={`urls.${index}`} component="div" className="text-[#C81E1E] text-sm" />
                       </div>
                     ))}
-
                     <Button
                       type="button"
                       onClick={() => arrayHelpers.push("")}
                       color="light"
                       className="text-sm mt-[24px] font-medium bg-white border border-gray-300 focus:ring-0 focus:outline-none"
+                      disabled={values.urls.length >= 10} // Disable after 10 URLs
                     >
                       <span className="flex items-center">
                         <span className="bg-purple-800 rounded-full p-0.5 mr-2">
@@ -129,24 +125,24 @@ export const CreateRequestMainComponent: React.FC = () => {
                   </>
                 )}
               />
-            </div>
+            </div >
 
             <div className="p-4 bg-white border-t border-[#E5E7EB]">
               <div className="flex items-center justify-end">
                 <Button
-                  type="submit"
+                  type="submit" // Change from "button" to "submit"
                   color="primary"
                   className="text-[14px] text-white font-medium bg-purple-700 hover:bg-purple-800"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting} // Disable while submitting
                 >
                   <HiPlus className="h-5 w-5" />
                   <span className="ml-2">{isSubmitting ? "Submitting..." : "Create Request"}</span>
                 </Button>
               </div>
             </div>
-          </Form>
+          </Form >
         )}
-      </Formik>
-    </div>
+      </Formik >
+    </div >
   );
 };
